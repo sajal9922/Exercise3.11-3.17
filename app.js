@@ -3,7 +3,7 @@ const app = express();
 const morgan = require('morgan');
 const cors = require('cors');
 const personsRouter = require('./controllers/persons');
-
+const middleware = require('./utils/middleware');
 const mongoose = require('mongoose');
 
 const Person = require('./models/persons');
@@ -23,12 +23,6 @@ mongoose
     logger.error('Error connecting to MongoDB Atlas: ', error.message);
   });
 
-app.use(express.static('dist'));
-app.use(cors());
-app.use(express.json());
-app.use(morgan('tiny'));
-app.use('/api/persons', personsRouter);
-
 //  Get info
 app.get('/info', (req, res, next) => {
   Person.find({})
@@ -42,12 +36,14 @@ app.get('/info', (req, res, next) => {
     .catch(next);
 });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  if (err.name === 'CastError') {
-    return res.status(400).send({ error: 'malformatted id' });
-  }
-});
+app.use(express.static('dist'));
+app.use(cors());
+app.use(express.json());
+app.use(morgan('tiny'));
+app.use('/api/persons', personsRouter);
+
+app.use(middleware.errorHandler);
+app.use(middleware.requestLogger);
+app.use(middleware.unknownEndpoint);
 
 module.exports = app;
